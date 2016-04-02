@@ -10,12 +10,14 @@ namespace WunderDog.WordFinder
     {
         private readonly List<string> _possibleWords;
         private readonly List<List<char>> _lettersPlanes;
+        private readonly bool _parallel;
         private Dictionary<char, List<CustomPoint>> _letterPositions;
 
-        public WordFinder(List<string> possibleWords, List<List<char>> lettersPlanes)
+        public WordFinder(List<string> possibleWords, List<List<char>> lettersPlanes, bool parallel)
         {
             _possibleWords = possibleWords;
             _lettersPlanes = lettersPlanes;
+            _parallel = parallel;
 
             FoundWords = new ConcurrentBag<string>();
         }
@@ -59,14 +61,25 @@ namespace WunderDog.WordFinder
         public void FindWords()
         {
             Initialize();
+            
+            if (_parallel)
+            {
+                Parallel.ForEach(_possibleWords.Where(w => _letterPositions.ContainsKey(w[0])), FindWord);
+            }
+            else
+            {
+                foreach (var word in _possibleWords.Where(w => _letterPositions.ContainsKey(w[0])))
+                {
+                    FindWord(word);
+                }
+            }
 
-            Parallel.ForEach(_possibleWords, FindWord);
         }
 
         private void FindWord(string word)
         {
             List<CustomPoint> firstLetters;
-            
+
             if (_letterPositions.TryGetValue(word[0], out firstLetters))
             {
                 foreach (var firstLetter in firstLetters)

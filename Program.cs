@@ -3,12 +3,31 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Running;
 
 namespace WunderDog.WordFinder
 {
     internal class Program
     {
         private static void Main(string[] args)
+        {
+           // var summary = BenchmarkRunner.Run<Benchmarker>();
+            Stopwatch w = new Stopwatch();
+            w.Start();
+
+            var finder = Run(false);
+
+            w.Stop();
+
+            Console.WriteLine("finished in " + w.ElapsedMilliseconds + "ms.");
+
+            Console.WriteLine(finder.FoundWordsCount);
+
+            Console.ReadKey();
+        }
+
+        internal static WordFinder Run(bool parallel)
         {
             string plane0 = "AJFEAPUWOGMRMNXK";
             string plane1 = "DNSIFODSJEGIWKPR";
@@ -23,25 +42,26 @@ namespace WunderDog.WordFinder
                 plane1.ToCharArray().ToList(),
                 plane2.ToCharArray().ToList(),
                 plane3.ToCharArray().ToList()
-            });
-
-            Stopwatch w = new Stopwatch();
-            w.Start();
+            }, parallel);
 
             finder.FindWords();
 
-            w.Stop();
+            return finder;
+        }
+    }
 
-            Console.WriteLine("finished in " + w.ElapsedMilliseconds + "ms.");
+    public class Benchmarker
+    {
+        [Benchmark]
+        public void RunFullTestWithBenchmarkParallel()
+        {
+            Program.Run(true);
+        }
 
-            Console.WriteLine(finder.FoundWordsCount);
-
-            //foreach (var found in finder.FoundWords)
-            //{
-            //    Console.WriteLine(found);
-            //}
-
-            Console.ReadKey();
+        [Benchmark]
+        public void RunFullTestWithBenchmarkNoParallel()
+        {
+            Program.Run(false);
         }
     }
 }
