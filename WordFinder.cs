@@ -8,7 +8,7 @@ namespace WunderDog.WordFinder
     {
         private readonly List<string> _possibleWords;
         private readonly List<List<char>> _lettersPlanes;
-        private Dictionary<CustomPoint, char> _lettersIndexed;
+        private Dictionary<char, List<CustomPoint>> _letterPositions;
 
         public WordFinder(List<string> possibleWords, List<List<char>> lettersPlanes)
         {
@@ -20,11 +20,11 @@ namespace WunderDog.WordFinder
 
         public IList<string> FoundWords { get; set; }
 
-        public int FoundWordsCount => FoundWords.Count;
+        public int FoundWordsCount => FoundWords.Distinct().Count();
 
         private void Initialize()
         {
-            _lettersIndexed = new Dictionary<CustomPoint, char>();
+            _letterPositions = new Dictionary<char, List<CustomPoint>>();
 
             for (int z = 0; z < _lettersPlanes.Count; z++)
             {
@@ -38,7 +38,18 @@ namespace WunderDog.WordFinder
                         y++;
                     }
 
-                    _lettersIndexed.Add(new CustomPoint(x, y, z), Convert.ToChar(lettersPlane[i].ToString().ToLower()));
+                    char c = Convert.ToChar(lettersPlane[i].ToString().ToLower());
+
+                    CustomPoint point = new CustomPoint(x, y, z);
+
+                    if (!_letterPositions.ContainsKey(c))
+                    {
+                        _letterPositions.Add(c, new List<CustomPoint>() { point });
+                    }
+                    else
+                    {
+                        _letterPositions[c].Add(point);
+                    }
                 }
             }
         }
@@ -55,41 +66,40 @@ namespace WunderDog.WordFinder
 
         private void FindWord(string word)
         {
-            var firstLetters = _lettersIndexed.Where(li => li.Value == word[0]);
-
-            foreach (var firstLetter in firstLetters)
+            List<CustomPoint> firstLetters;
+            
+            if (_letterPositions.TryGetValue(word[0], out firstLetters))
             {
-                var chain = FindNeighbouringLetter(word, firstLetter, new List<CustomPoint>() { firstLetter.Key });
-
-                if (chain.Count == word.Length)
+                foreach (var firstLetter in firstLetters)
                 {
-                    FoundWords.Add(word);
+                    var chain = FindNeighbouringLetter(word, firstLetter,
+                        new List<CustomPoint>() { firstLetter });
 
-                   // Console.WriteLine("word found: " + word + ", with chain:");
-                    foreach (var c in chain)
+                    if (chain.Count == word.Length)
                     {
-                     //   Console.WriteLine(c.ToString());
+                        FoundWords.Add(word);
                     }
-                }
-                else
-                {
-                    //Console.WriteLine("word not found: " + word);
                 }
             }
         }
 
         private IList<CustomPoint> FindNeighbouringLetter(string word,
-            KeyValuePair<CustomPoint, char> currentLetter, List<CustomPoint> customPoints)
+            CustomPoint currentLetter, List<CustomPoint> customPoints)
         {
-            var neigbouringLetters = _lettersIndexed.Where(li => li.Value == word[customPoints.Count] &&
-                                                                 li.Key.IsNeighbourOf(currentLetter.Key) &&
-                                                                 customPoints.Contains(li.Key) == false);
+            List<CustomPoint> positions;
+            if (_letterPositions.TryGetValue(word[customPoints.Count], out positions) == false)
+            {
+                return customPoints;
+            };
+
+            var neigbouringLetters = positions.Where(pos => pos.IsNeighbourOf(currentLetter) &&
+                                                                 customPoints.Contains(pos) == false);
 
             foreach (var neighbour in neigbouringLetters)
             {
                 var newChain = new List<CustomPoint>();
                 newChain.AddRange(customPoints);
-                newChain.Add(neighbour.Key);
+                newChain.Add(neighbour);
 
                 if (newChain.Count == word.Length)
                 {
