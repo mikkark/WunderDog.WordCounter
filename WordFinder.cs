@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace WunderDog.WordFinder
 {
@@ -15,10 +17,10 @@ namespace WunderDog.WordFinder
             _possibleWords = possibleWords;
             _lettersPlanes = lettersPlanes;
 
-            FoundWords = new List<string>();
+            FoundWords = new ConcurrentBag<string>();
         }
 
-        public IList<string> FoundWords { get; set; }
+        public ConcurrentBag<string> FoundWords { get; set; }
 
         public int FoundWordsCount => FoundWords.Distinct().Count();
 
@@ -58,10 +60,7 @@ namespace WunderDog.WordFinder
         {
             Initialize();
 
-            foreach (string word in _possibleWords)
-            {
-                FindWord(word);
-            }
+            Parallel.ForEach(_possibleWords, FindWord);
         }
 
         private void FindWord(string word)
