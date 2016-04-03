@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -24,7 +25,7 @@ namespace WunderDog.WordFinder
 
         public ConcurrentBag<string> FoundWords { get; set; }
 
-        public int FoundWordsCount => FoundWords.Distinct().Count();
+        public int FoundWordsCount => FoundWords.Count();
 
         private void Initialize()
         {
@@ -61,7 +62,7 @@ namespace WunderDog.WordFinder
         public void FindWords()
         {
             Initialize();
-            
+
             if (_parallel)
             {
                 Parallel.ForEach(_possibleWords.Where(w => _letterPositions.ContainsKey(w[0])), FindWord);
@@ -84,24 +85,39 @@ namespace WunderDog.WordFinder
             {
                 foreach (var firstLetter in firstLetters)
                 {
-                    var chain = FindNeighbouringLetter(word, firstLetter,
-                        new List<CustomPoint>() { firstLetter });
-
-                    if (chain.Count == word.Length)
-                    {
-                        FoundWords.Add(word);
-                    }
+                    FollowChain(word, firstLetter, new List<CustomPoint>());
                 }
             }
         }
 
-        private IList<CustomPoint> FindNeighbouringLetter(string word,
+        private void FollowChain(string word,
             CustomPoint currentLetter, List<CustomPoint> customPoints)
         {
+            customPoints.Add(currentLetter);
+
+            if (customPoints.Count == word.Length)
+            {
+                FoundWords.Add(word);
+
+                Debug.WriteLine("found word " + word + " in chain:");
+                foreach (var link in customPoints)
+                {
+                    Debug.WriteLine(link.ToString());
+                }
+
+                return;
+            }
+
             List<CustomPoint> positions;
             if (_letterPositions.TryGetValue(word[customPoints.Count], out positions) == false)
             {
-                return customPoints;
+                Debug.WriteLine("word not found " + word + " in chain:");
+                foreach (var link in customPoints)
+                {
+                    Debug.WriteLine(link.ToString());
+                }
+
+                return;
             };
 
             var neigbouringLetters = positions.Where(pos => pos.IsNeighbourOf(currentLetter) &&
@@ -111,19 +127,9 @@ namespace WunderDog.WordFinder
             {
                 var newChain = new List<CustomPoint>();
                 newChain.AddRange(customPoints);
-                newChain.Add(neighbour);
 
-                if (newChain.Count == word.Length)
-                {
-                    return newChain;
-                }
-                else
-                {
-                    return FindNeighbouringLetter(word, neighbour, newChain);
-                }
+                FollowChain(word, neighbour, newChain);
             }
-
-            return customPoints;
         }
     }
 }
