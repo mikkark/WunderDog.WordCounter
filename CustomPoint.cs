@@ -56,6 +56,11 @@ namespace WunderDog.WordFinder
                 return false;
             }
 
+            if (Math.Abs(other.Z - Z) == 1 && other.Y == Y && other.X == X)
+            {
+                return true;
+            }
+
             if (other.X == X && Math.Abs(other.Y - Y) == 1)
             {
                 return true;
