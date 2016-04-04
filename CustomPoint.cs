@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace WunderDog.WordFinder
 {
-    internal struct CustomPoint
+    public struct CustomPoint
     {
         private readonly int _x;
         private readonly int _y;
@@ -47,6 +48,17 @@ namespace WunderDog.WordFinder
         public override string ToString()
         {
             return X + ", " + Y + ", " + Z;
+        }
+
+        public static int operator -(CustomPoint c1, CustomPoint c2)
+        {
+            int[] distances = new int[3];
+
+            distances[0] = Math.Abs(c1.X - c2.X);
+            distances[1] = Math.Abs(c1.Y - c2.Y);
+            distances[2] = Math.Abs(c1.Z - c2.Z);
+
+            return distances.Max();
         }
 
         public bool IsNeighbourOf(CustomPoint other)
